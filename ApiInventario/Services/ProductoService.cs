@@ -54,7 +54,7 @@ namespace ApiInventario.Services
                 Descripcion = dto.Descripcion?.Trim(),
                 Codigo = dto.Codigo.Trim(),
                 Precio = dto.Precio,
-                StockActual = 0,
+                StockActual = 0, 
                 CategoriaId = dto.CategoriaId
             };
 

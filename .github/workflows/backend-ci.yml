@@ -29,10 +29,5 @@ jobs:
         run: dotnet build ApiInventario/ApiInventario.csproj --configuration Release --no-restore
 
       - name: Test
-        run: |
-          test_projects=$(find . -name '*Tests.csproj')
-          if [ -z "$test_projects" ]; then
-            echo "No test projects found. Skipping dotnet test."
-          else
-            dotnet test --configuration Release --no-build
-          fi
+        run: dotnet test ApiInventario.Tests/ApiInventario.Tests.csproj --configuration Release --no-build
+  
