@@ -25,5 +25,36 @@ jobs:
         with:
           context: .
           file: Dockerfile
+          load: true
           push: false
           tags: inventory-api:ci
+
+      - name: Run container
+        run: |
+          docker run -d --name inventory-api-ci \
+            -p 8080:8080 \
+            -e ASPNETCORE_ENVIRONMENT=Development \
+            -e Database__AutoMigrate=false \
+            -e ConnectionStrings__DefaultConnection="Server=localhost;Database=InventarioDb;User Id=sa;Password=NotUsed_12345;TrustServerCertificate=true;Encrypt=False" \
+            -e Jwt__Key="ci_jwt_key_for_smoke_tests_only_1234567890" \
+            -e Jwt__Issuer="ApiInventario" \
+            -e Jwt__Audience="ApiInventarioClient" \
+            inventory-api:ci
+
+      - name: Smoke test health endpoint
+        run: |
+          for i in {1..10}; do
+            if curl --fail http://localhost:8080/health; then
+              exit 0
+            fi
+
+            echo "API is not ready yet. Retry $i/10..."
+            sleep 3
+          done
+
+          docker logs inventory-api-ci
+          exit 1
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f inventory-api-ci

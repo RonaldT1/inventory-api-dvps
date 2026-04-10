@@ -87,8 +87,9 @@ if (!string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAIN
     app.UseHttpsRedirection();
 }
 
-using (var scope = app.Services.CreateScope())
+if (builder.Configuration.GetValue("Database:AutoMigrate", true))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApiInventarioDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
