@@ -29,6 +29,7 @@ The project includes product, category, authentication, and inventory movement e
 |   +-- Program.cs
 +-- ApiInventario.Tests
 +-- .github/workflows
++-- k8s
 +-- Dockerfile
 +-- docker-compose.yml
 +-- .env.example
@@ -167,6 +168,119 @@ remove test container
 
 This validates that the Docker image can be built, the container can start, and the API responds through the health endpoint.
 
+## Kubernetes With Minikube
+
+The project can also be deployed locally to Kubernetes using Minikube.
+
+Kubernetes manifests are stored in:
+
+```text
+k8s/
+```
+
+Versioned manifests:
+
+```text
+namespace.yaml
+api-configmap.yaml
+sqlserver-pvc.yaml
+sqlserver-deployment.yaml
+sqlserver-service.yaml
+api-deployment.yaml
+api-service.yaml
+```
+
+Secrets with real values are created directly in the cluster with `kubectl create secret generic` and are not committed to the repository.
+
+### Start Minikube
+
+```bash
+minikube start
+kubectl get nodes
+```
+
+### Load the API Image Into Minikube
+
+From the project root:
+
+```bash
+docker build -t inventory-api:k8s .
+minikube image load inventory-api:k8s
+minikube image ls | grep inventory-api
+```
+
+### Create Runtime Secrets
+
+SQL Server password:
+
+```bash
+kubectl create secret generic sqlserver-secret \
+  --from-literal=MSSQL_SA_PASSWORD='your_sql_password' \
+  -n inventory
+```
+
+JWT key:
+
+```bash
+kubectl create secret generic api-secret \
+  --from-literal=JWT_KEY='your_long_jwt_key' \
+  -n inventory
+```
+
+Database connection string:
+
+```bash
+kubectl create secret generic api-db-secret \
+  --from-literal=ConnectionStrings__DefaultConnection='Server=sqlserver,1433;Database=InventarioDb;User Id=sa;Password=your_sql_password;TrustServerCertificate=true;Encrypt=False' \
+  -n inventory
+```
+
+### Deploy to Kubernetes
+
+Apply all manifests:
+
+```bash
+kubectl apply -f k8s/
+```
+
+Check resources:
+
+```bash
+kubectl get pods -n inventory
+kubectl get svc -n inventory
+kubectl get pvc -n inventory
+```
+
+### Access the API
+
+Expose the API through Minikube:
+
+```bash
+minikube service inventory-api -n inventory
+```
+
+This opens a local URL that forwards traffic to the `NodePort` service.
+
+### Verify the Deployment
+
+Useful commands for debugging:
+
+```bash
+kubectl logs -n inventory deployment/inventory-api
+kubectl logs -n inventory deployment/sqlserver
+kubectl describe pod -n inventory <pod-name>
+kubectl describe svc inventory-api -n inventory
+```
+
+The current Kubernetes setup includes:
+
+- `sqlserver` deployed as a `Deployment`
+- `sqlserver` exposed internally as a `ClusterIP` service
+- `inventory-api` deployed as a `Deployment`
+- `inventory-api` exposed as a `NodePort` service
+- SQL Server storage persisted with a `PersistentVolumeClaim`
+- API health probes using `/health`
+
 ## Useful Commands
 
 Build the API locally:
@@ -193,6 +307,18 @@ Run the full local stack:
 docker compose up -d --build
 ```
 
+Deploy to Kubernetes:
+
+```bash
+kubectl apply -f k8s/
+```
+
+Open the API from Minikube:
+
+```bash
+minikube service inventory-api -n inventory
+```
+
 View container logs:
 
 ```bash
@@ -201,7 +327,6 @@ docker compose logs -f apiinventario
 
 ## Next Steps
 
-- Add Kubernetes manifests for API and SQL Server.
-- Add Kubernetes health probes using `/health`.
 - Add a CD workflow that builds and pushes the Docker image.
+- Add a Kubernetes deployment workflow after publishing the image.
 - Add more tests for authentication and inventory movement rules.

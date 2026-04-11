@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: inventory
+data:
+  ASPNETCORE_ENVIRONMENT: "Development"
+  Database__AutoMigrate: "true"
+  Jwt__Issuer: "ApiInventario"
+  Jwt__Audience: "ApiInventarioClient"
