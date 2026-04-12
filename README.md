@@ -14,6 +14,7 @@ The project includes product, category, authentication, and inventory movement e
 - xUnit tests
 - Docker and Docker Compose
 - GitHub Actions CI
+- GitHub Container Registry (GHCR)
 
 ## Project Structure
 
@@ -168,6 +169,41 @@ remove test container
 
 This validates that the Docker image can be built, the container can start, and the API responds through the health endpoint.
 
+### CD to GHCR
+
+File:
+
+```text
+.github/workflows/cd-ghcr.yml
+```
+
+Runs on every push to `main` and can also be triggered manually.
+
+Steps:
+
+```text
+checkout repository
+login to GHCR
+extract Docker metadata
+build Docker image
+push image to GHCR
+```
+
+Published image:
+
+```text
+ghcr.io/<github-user-or-org>/inventory-api-dvps
+```
+
+The workflow publishes at least these tags:
+
+```text
+latest
+sha-<commit>
+```
+
+This gives the project a real CD step by automatically publishing a deployable image after changes reach `main`.
+
 ## Kubernetes With Minikube
 
 The project can also be deployed locally to Kubernetes using Minikube.
@@ -281,6 +317,18 @@ The current Kubernetes setup includes:
 - SQL Server storage persisted with a `PersistentVolumeClaim`
 - API health probes using `/health`
 
+Note:
+
+```text
+The Kubernetes deployment in this repository targets local Minikube.
+Publishing to GHCR is automated in GitHub Actions, but deploying from a GitHub-hosted runner directly into a local Minikube cluster is not practical.
+```
+
+For a full remote CD pipeline later, the usual next step is either:
+
+- a self-hosted GitHub runner on the machine that has Minikube access, or
+- a remote Kubernetes cluster reachable from GitHub Actions
+
 ## Useful Commands
 
 Build the API locally:
@@ -319,6 +367,12 @@ Open the API from Minikube:
 minikube service inventory-api -n inventory
 ```
 
+Build and publish image to GHCR:
+
+```bash
+git push origin main
+```
+
 View container logs:
 
 ```bash
@@ -327,6 +381,6 @@ docker compose logs -f apiinventario
 
 ## Next Steps
 
-- Add a CD workflow that builds and pushes the Docker image.
 - Add a Kubernetes deployment workflow after publishing the image.
+- Publish a stable image tag strategy for staging and production.
 - Add more tests for authentication and inventory movement rules.
