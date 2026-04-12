@@ -5,6 +5,8 @@ metadata:
   namespace: inventory
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: sqlserver
@@ -29,6 +31,16 @@ spec:
           volumeMounts:
             - name: sqlserver-storage
               mountPath: /var/opt/mssql
+          readinessProbe:
+            tcpSocket:
+              port: 1433
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 1433
+            initialDelaySeconds: 30
+            periodSeconds: 20
       volumes:
         - name: sqlserver-storage
           persistentVolumeClaim:

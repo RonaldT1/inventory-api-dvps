@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: inventory-api
-          image: inventory-api:k8s
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/ronaldt1/inventory-api-dvps:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
