@@ -14,7 +14,8 @@ The project includes product, category, authentication, and inventory movement e
 - xUnit tests
 - Docker and Docker Compose
 - GitHub Actions CI
-- GitHub Container Registry (GHCR)
+- Amazon ECR
+- Amazon EKS
 
 ## Project Structure
 
@@ -122,7 +123,7 @@ Current tests validate business rules such as:
 
 ## CI Pipelines
 
-The repository includes two GitHub Actions workflows.
+The repository includes three active GitHub Actions workflows.
 
 ### Backend CI
 
@@ -169,12 +170,12 @@ remove test container
 
 This validates that the Docker image can be built, the container can start, and the API responds through the health endpoint.
 
-### CD to GHCR
+### CD to ECR
 
 File:
 
 ```text
-.github/workflows/cd-ghcr.yml
+.github/workflows/cd-ecr.yml
 ```
 
 Runs on every push to `main` and can also be triggered manually.
@@ -183,16 +184,17 @@ Steps:
 
 ```text
 checkout repository
-login to GHCR
+configure AWS credentials
+login to Amazon ECR
 extract Docker metadata
 build Docker image
-push image to GHCR
+push image to ECR
 ```
 
 Published image:
 
 ```text
-ghcr.io/<github-user-or-org>/inventory-api-dvps
+178886967615.dkr.ecr.us-east-1.amazonaws.com/inventory-api
 ```
 
 The workflow publishes at least these tags:
@@ -202,11 +204,21 @@ latest
 sha-<commit>
 ```
 
-This gives the project a real CD step by automatically publishing a deployable image after changes reach `main`.
+This gives the project a real CD step by automatically publishing a deployable image to Amazon ECR after changes reach `main`.
 
-## Kubernetes With Minikube
+Required GitHub Secrets:
 
-The project can also be deployed locally to Kubernetes using Minikube.
+```text
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+```
+
+## Kubernetes Deployment Targets
+
+The repository includes Kubernetes manifests that can be applied to either:
+
+- local Minikube for development and learning
+- Amazon EKS for a managed cloud cluster
 
 Kubernetes manifests are stored in:
 
@@ -228,14 +240,16 @@ api-service.yaml
 
 Secrets with real values are created directly in the cluster with `kubectl create secret generic` and are not committed to the repository.
 
-### Start Minikube
+### Local Minikube
+
+Start Minikube:
 
 ```bash
 minikube start
 kubectl get nodes
 ```
 
-### Load the API Image Into Minikube
+Load the API image into Minikube:
 
 From the project root:
 
@@ -245,7 +259,7 @@ minikube image load inventory-api:k8s
 minikube image ls | grep inventory-api
 ```
 
-### Create Runtime Secrets
+Create runtime secrets:
 
 SQL Server password:
 
@@ -271,7 +285,7 @@ kubectl create secret generic api-db-secret \
   -n inventory
 ```
 
-### Deploy to Kubernetes
+Deploy to Kubernetes:
 
 Apply all manifests:
 
@@ -287,7 +301,7 @@ kubectl get svc -n inventory
 kubectl get pvc -n inventory
 ```
 
-### Access the API
+Access the API:
 
 Expose the API through Minikube:
 
@@ -297,7 +311,7 @@ minikube service inventory-api -n inventory
 
 This opens a local URL that forwards traffic to the `NodePort` service.
 
-### Verify the Deployment
+Verify the deployment:
 
 Useful commands for debugging:
 
@@ -317,17 +331,22 @@ The current Kubernetes setup includes:
 - SQL Server storage persisted with a `PersistentVolumeClaim`
 - API health probes using `/health`
 
-Note:
+### Amazon EKS
 
-```text
-The Kubernetes deployment in this repository targets local Minikube.
-Publishing to GHCR is automated in GitHub Actions, but deploying from a GitHub-hosted runner directly into a local Minikube cluster is not practical.
+The current API Deployment manifest points to Amazon ECR:
+
+```yaml
+image: 178886967615.dkr.ecr.us-east-1.amazonaws.com/inventory-api:latest
 ```
 
-For a full remote CD pipeline later, the usual next step is either:
+That means an Amazon EKS cluster can pull the image published by the `CD to ECR` workflow.
 
-- a self-hosted GitHub runner on the machine that has Minikube access, or
-- a remote Kubernetes cluster reachable from GitHub Actions
+Typical next steps for EKS are:
+
+- configure `kubectl` access to the EKS cluster
+- create Kubernetes Secrets in the target namespace
+- apply `k8s/` manifests to the cluster
+- optionally add a deployment workflow after the image publish step
 
 ## Useful Commands
 
@@ -367,7 +386,7 @@ Open the API from Minikube:
 minikube service inventory-api -n inventory
 ```
 
-Build and publish image to GHCR:
+Build and publish image to Amazon ECR:
 
 ```bash
 git push origin main
@@ -381,6 +400,6 @@ docker compose logs -f apiinventario
 
 ## Next Steps
 
-- Add a Kubernetes deployment workflow after publishing the image.
+- Add an Amazon EKS deployment workflow after publishing the image.
 - Publish a stable image tag strategy for staging and production.
 - Add more tests for authentication and inventory movement rules.

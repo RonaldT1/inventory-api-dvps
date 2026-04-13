@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: inventory-api
-          image: ghcr.io/ronaldt1/inventory-api-dvps:latest
+          image: 178886967615.dkr.ecr.us-east-1.amazonaws.com/inventory-api:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
