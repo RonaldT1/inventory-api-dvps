@@ -1,0 +1,74 @@
+name: Deploy to EKS
+
+on:
+  workflow_run:
+    workflows:
+      - CD to ECR
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: inventory-eks-cluster
+  K8S_NAMESPACE: inventory
+
+jobs:
+  deploy:
+    name: Apply manifests to EKS
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region $env:AWS_REGION --name $env:EKS_CLUSTER_NAME
+        shell: pwsh
+
+      - name: Verify cluster access
+        run: |
+          kubectl config current-context
+          kubectl get nodes
+        shell: pwsh
+
+      - name: Apply namespace
+        run: kubectl apply -f k8s/namespace.yaml
+        shell: pwsh
+
+      - name: Apply Kubernetes manifests
+        run: kubectl apply -f k8s/
+        shell: pwsh
+
+      - name: Wait for SQL Server rollout
+        run: kubectl rollout status deployment/sqlserver -n $env:K8S_NAMESPACE --timeout=10m
+        shell: pwsh
+
+      - name: Wait for API rollout
+        run: kubectl rollout status deployment/inventory-api -n $env:K8S_NAMESPACE --timeout=10m
+        shell: pwsh
+
+      - name: Show deployed resources
+        run: |
+          kubectl get pods -n $env:K8S_NAMESPACE
+          kubectl get svc -n $env:K8S_NAMESPACE
+        shell: pwsh

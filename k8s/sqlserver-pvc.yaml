@@ -4,8 +4,10 @@ metadata:
   name: sqlserver-pvc
   namespace: inventory
 spec:
+  storageClassName: gp2
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 2Gi
+      
