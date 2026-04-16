@@ -4,6 +4,13 @@ Inventory management API built with ASP.NET Core, Entity Framework Core, SQL Ser
 
 The project includes product, category, authentication, and inventory movement endpoints. Stock is controlled through inventory movements, so products are created with `StockActual = 0` and later updated through `Entrada`, `Salida`, or `Ajuste` movements.
 
+The current cloud flow is:
+
+- Terraform provisions the AWS infrastructure.
+- GitHub Actions builds and publishes the API image to Amazon ECR.
+- GitHub Actions deploys the Kubernetes manifests to Amazon EKS.
+- Kubernetes runs the API and SQL Server inside the cluster.
+
 ## Tech Stack
 
 - ASP.NET Core Web API
@@ -31,6 +38,7 @@ The project includes product, category, authentication, and inventory movement e
 |   +-- Program.cs
 +-- ApiInventario.Tests
 +-- .github/workflows
++-- infra/terraform
 +-- k8s
 +-- Dockerfile
 +-- docker-compose.yml
@@ -123,7 +131,7 @@ Current tests validate business rules such as:
 
 ## CI Pipelines
 
-The repository includes three active GitHub Actions workflows.
+The repository includes four active GitHub Actions workflows.
 
 ### Backend CI
 
@@ -211,6 +219,45 @@ Required GitHub Secrets:
 ```text
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
+```
+
+### Deploy to EKS
+
+File:
+
+```text
+.github/workflows/deploy-eks.yml
+```
+
+Runs:
+
+- automatically after `CD to ECR` completes successfully on `main`
+- manually through `workflow_dispatch`
+
+Steps:
+
+```text
+checkout repository
+configure AWS credentials
+install kubectl
+update kubeconfig for apiinventario-eks
+verify cluster access
+apply namespace
+create or update Kubernetes secrets from GitHub Secrets
+apply k8s manifests
+wait for SQL Server rollout
+wait for API rollout
+show deployed pods and services
+```
+
+Required GitHub Secrets:
+
+```text
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+MSSQL_SA_PASSWORD
+JWT_KEY
+DB_CONNECTION_STRING
 ```
 
 ## Kubernetes Deployment Targets
@@ -327,11 +374,31 @@ The current Kubernetes setup includes:
 - `sqlserver` deployed as a `Deployment`
 - `sqlserver` exposed internally as a `ClusterIP` service
 - `inventory-api` deployed as a `Deployment`
-- `inventory-api` exposed as a `NodePort` service
+- `inventory-api` exposed as a `LoadBalancer` service on Amazon EKS
 - SQL Server storage persisted with a `PersistentVolumeClaim`
 - API health probes using `/health`
 
 ### Amazon EKS
+
+The repository now uses Terraform in:
+
+```text
+infra/terraform/
+```
+
+Terraform currently manages:
+
+- Amazon ECR repository
+- IAM roles and policy attachments for EKS
+- VPC, public subnets, private subnets, route tables, internet gateway, and NAT gateway
+- Amazon EKS cluster
+- EKS managed node group
+- EKS addons:
+  - `vpc-cni`
+  - `kube-proxy`
+  - `coredns`
+  - `eks-pod-identity-agent`
+  - `aws-ebs-csi-driver`
 
 The current API Deployment manifest points to Amazon ECR:
 
@@ -339,14 +406,47 @@ The current API Deployment manifest points to Amazon ECR:
 image: 178886967615.dkr.ecr.us-east-1.amazonaws.com/inventory-api:latest
 ```
 
-That means an Amazon EKS cluster can pull the image published by the `CD to ECR` workflow.
+That means the EKS cluster can pull the image published by the `CD to ECR` workflow.
 
-Typical next steps for EKS are:
+Current cluster name:
 
-- configure `kubectl` access to the EKS cluster
-- create Kubernetes Secrets in the target namespace
-- apply `k8s/` manifests to the cluster
-- optionally add a deployment workflow after the image publish step
+```text
+apiinventario-eks
+```
+
+Typical EKS workflow is:
+
+- run `terraform apply` in `infra/terraform`
+- let `CD to ECR` publish the Docker image
+- let `Deploy to EKS` create or update cluster secrets and apply `k8s/`
+- access the API through the AWS LoadBalancer created for `inventory-api`
+
+### Terraform Commands
+
+Initialize Terraform:
+
+```bash
+cd infra/terraform
+terraform init
+```
+
+Preview infrastructure changes:
+
+```bash
+terraform plan
+```
+
+Apply infrastructure:
+
+```bash
+terraform apply
+```
+
+Destroy infrastructure when it is no longer needed:
+
+```bash
+terraform destroy
+```
 
 ## Useful Commands
 
@@ -392,6 +492,18 @@ Build and publish image to Amazon ECR:
 git push origin main
 ```
 
+Access the API locally from EKS with port forwarding:
+
+```bash
+kubectl port-forward -n inventory svc/inventory-api 8080:8080
+```
+
+Health check:
+
+```bash
+curl http://localhost:8080/health
+```
+
 View container logs:
 
 ```bash
@@ -400,6 +512,6 @@ docker compose logs -f apiinventario
 
 ## Next Steps
 
-- Add an Amazon EKS deployment workflow after publishing the image.
+- Move GitHub Actions AWS authentication from access keys to OIDC and IAM roles.
 - Publish a stable image tag strategy for staging and production.
 - Add more tests for authentication and inventory movement rules.
