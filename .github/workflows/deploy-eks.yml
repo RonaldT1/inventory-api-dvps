@@ -13,7 +13,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  EKS_CLUSTER_NAME: inventory-eks-cluster
+  EKS_CLUSTER_NAME: apiinventario-eks
   K8S_NAMESPACE: inventory
 
 jobs:
@@ -53,6 +53,24 @@ jobs:
 
       - name: Apply namespace
         run: kubectl apply -f k8s/namespace.yaml
+        shell: pwsh
+
+      - name: Apply Kubernetes secrets
+        run: |
+          kubectl create secret generic sqlserver-secret `
+            --from-literal=MSSQL_SA_PASSWORD='${{ secrets.MSSQL_SA_PASSWORD }}' `
+            -n $env:K8S_NAMESPACE `
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl create secret generic api-secret `
+            --from-literal=JWT_KEY='${{ secrets.JWT_KEY }}' `
+            -n $env:K8S_NAMESPACE `
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl create secret generic api-db-secret `
+            --from-literal=ConnectionStrings__DefaultConnection='${{ secrets.DB_CONNECTION_STRING }}' `
+            -n $env:K8S_NAMESPACE `
+            --dry-run=client -o yaml | kubectl apply -f -
         shell: pwsh
 
       - name: Apply Kubernetes manifests
