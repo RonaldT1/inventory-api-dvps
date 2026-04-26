@@ -1,4 +1,5 @@
-﻿using ApiInventario.DTOs.Categoria;
+using ApiInventario.DTOs.Categoria;
+using ApiInventario.Models;
 using ApiInventario.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +33,7 @@ namespace ApiInventario.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> Create([FromBody] CategoriaCreateDto dto)
         {
             try
@@ -46,6 +48,7 @@ namespace ApiInventario.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> Update(int id, [FromBody] CategoriaUpdateDto dto)
         {
             try
@@ -60,6 +63,7 @@ namespace ApiInventario.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> Delete(int id)
         {
             try

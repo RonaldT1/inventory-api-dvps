@@ -25,7 +25,7 @@ namespace ApiInventario.Services
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Name, usuario.Username),
                 new Claim(ClaimTypes.Email, usuario.Email),
-                new Claim(ClaimTypes.Role, usuario.Role)
+                new Claim(ClaimTypes.Role, usuario.Role.ToString())
             };
 
             var token = new JwtSecurityToken(

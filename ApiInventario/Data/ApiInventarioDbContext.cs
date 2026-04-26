@@ -24,6 +24,11 @@ namespace ApiInventario.Data
             {
                 entity.HasIndex(u => u.Username).IsUnique();
                 entity.HasIndex(u => u.Email).IsUnique();
+
+                entity.Property(u => u.Role)
+                      .HasConversion<string>()
+                      .HasMaxLength(50)
+                      .IsRequired();
             });
 
             // Categoria

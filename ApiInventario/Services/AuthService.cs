@@ -38,7 +38,7 @@ namespace ApiInventario.Services
                 Username = dto.Username.Trim(),
                 Email = dto.Email.Trim().ToLowerInvariant(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = "User"
+                Role = UserRole.User
             };
 
             _context.Usuarios.Add(usuario);
@@ -49,7 +49,7 @@ namespace ApiInventario.Services
                 Token = _tokenService.GenerateToken(usuario),
                 Username = usuario.Username,
                 Email = usuario.Email,
-                Role = usuario.Role
+                Role = usuario.Role.ToString()
             };
         }
 
@@ -73,7 +73,7 @@ namespace ApiInventario.Services
                 Token = _tokenService.GenerateToken(usuario),
                 Username = usuario.Username,
                 Email = usuario.Email,
-                Role = usuario.Role
+                Role = usuario.Role.ToString()
             };
         }
     }

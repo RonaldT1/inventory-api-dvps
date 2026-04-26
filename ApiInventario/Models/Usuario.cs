@@ -23,7 +23,7 @@ namespace ApiInventario.Models
 
         [Required]
         [MaxLength(50)]
-        public string Role { get; set; } = "User";
+        public UserRole Role { get; set; } = UserRole.User;
 
         public bool IsActive { get; set; } = true;
 
