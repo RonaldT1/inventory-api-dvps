@@ -23,6 +23,8 @@ namespace ApiInventario.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal Precio { get; set; }
 
+        public byte[] RowVersion { get; set; } = [];
+
         public int StockActual { get; set; } = 0;
 
         public int CategoriaId { get; set; }

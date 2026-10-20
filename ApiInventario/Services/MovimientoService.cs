@@ -77,6 +77,8 @@ namespace ApiInventario.Services
                 UsuarioId = usuarioId
             };
 
+            // Incluso un ajuste al mismo stock debe comprobar la version del producto.
+            _context.Entry(producto).Property(p => p.StockActual).IsModified = true;
             _context.MovimientosInventario.Add(movimiento);
             await _context.SaveChangesAsync();
 

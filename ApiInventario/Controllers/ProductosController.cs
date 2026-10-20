@@ -2,6 +2,7 @@
 using ApiInventario.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ApiInventario.Controllers
 {
@@ -39,6 +40,13 @@ namespace ApiInventario.Controllers
                 var result = await _productoService.CreateAsync(dto);
                 return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Problem(
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Conflicto de concurrencia",
+                    detail: "El producto cambió durante la operación. Consulta su estado actual y vuelve a intentarlo.");
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { error = ex.Message });
@@ -53,6 +61,13 @@ namespace ApiInventario.Controllers
                 var result = await _productoService.UpdateAsync(id, dto);
                 return result is null ? NotFound(new { error = "Producto no encontrado." }) : Ok(result);
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Problem(
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Conflicto de concurrencia",
+                    detail: "El producto cambió durante la operación. Consulta su estado actual y vuelve a intentarlo.");
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { error = ex.Message });
@@ -66,6 +81,13 @@ namespace ApiInventario.Controllers
             {
                 var deleted = await _productoService.DeleteAsync(id);
                 return deleted ? NoContent() : NotFound(new { error = "Producto no encontrado." });
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Problem(
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Conflicto de concurrencia",
+                    detail: "El producto cambió durante la operación. Consulta su estado actual y vuelve a intentarlo.");
             }
             catch (InvalidOperationException ex)
             {

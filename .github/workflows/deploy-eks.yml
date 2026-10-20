@@ -1,11 +1,12 @@
 name: Deploy to EKS
 
 on:
-  workflow_run:
-    workflows:
-      - CD to ECR
-    types:
-      - completed
+  # Despliegue automatico en AWS desactivado; ejecutar manualmente cuando se necesite.
+  # workflow_run:
+  #   workflows:
+  #     - CD to ECR
+  #   types:
+  #     - completed
   workflow_dispatch:
 
 permissions:
@@ -20,10 +21,11 @@ jobs:
   deploy:
     name: Apply manifests to EKS
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main')
+    # Condicion anterior conservada como referencia para reactivar el flujo automatico.
+    # if: |
+    #   github.event_name == 'workflow_dispatch' ||
+    #   (github.event.workflow_run.conclusion == 'success' &&
+    #   github.event.workflow_run.head_branch == 'main')
 
     steps:
       - name: Checkout

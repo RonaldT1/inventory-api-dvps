@@ -67,7 +67,7 @@ public class MovimientoServiceTests
             Username = "admin",
             Email = "admin@example.com",
             PasswordHash = "hash",
-            Role = "Admin"
+            Role = UserRole.Admin
         });
         context.Productos.Add(new Producto
         {

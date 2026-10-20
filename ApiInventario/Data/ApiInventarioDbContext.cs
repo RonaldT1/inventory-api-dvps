@@ -41,6 +41,7 @@ namespace ApiInventario.Data
             modelBuilder.Entity<Producto>(entity =>
             {
                 entity.HasIndex(p => p.Codigo).IsUnique();
+                entity.Property(p => p.RowVersion).IsRowVersion();
 
                 entity.HasOne(p => p.Categoria)
                       .WithMany(c => c.Productos)

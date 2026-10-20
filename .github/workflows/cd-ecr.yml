@@ -1,9 +1,10 @@
 name: CD to ECR
 
 on:
-  push:
-    branches:
-      - main
+  # Publicacion automatica en AWS desactivada; ejecutar manualmente cuando se necesite.
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
 
 permissions:
