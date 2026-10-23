@@ -1,3 +1,4 @@
+using ApiInventario.Exceptions;
 using ApiInventario.Data;
 using ApiInventario.DTOs.Producto;
 using ApiInventario.Models;
@@ -31,7 +32,7 @@ public class ProductoServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_ConPrecioCero_LanzaInvalidOperationException()
+    public async Task CreateAsync_ConPrecioCero_LanzaBusinessRuleException()
     {
         await using var context = CreateContext();
         context.Categorias.Add(new Categoria { Id = 1, Nombre = "Laptops" });
@@ -46,7 +47,7 @@ public class ProductoServiceTests
             CategoriaId = 1
         };
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(dto));
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(dto));
         Assert.Equal("El precio debe ser mayor a 0.", exception.Message);
     }
 

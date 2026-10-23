@@ -1,4 +1,4 @@
-﻿using ApiInventario.DTOs.Producto;
+using ApiInventario.DTOs.Producto;
 using ApiInventario.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +29,7 @@ namespace ApiInventario.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var producto = await _productoService.GetByIdAsync(id);
-            return producto is null ? NotFound(new { error = "Producto no encontrado." }) : Ok(producto);
+            return producto is null ? Problem(statusCode: StatusCodes.Status404NotFound, title: "Producto no encontrado") : Ok(producto);
         }
 
         [HttpPost]
@@ -47,10 +47,6 @@ namespace ApiInventario.Controllers
                     title: "Conflicto de concurrencia",
                     detail: "El producto cambió durante la operación. Consulta su estado actual y vuelve a intentarlo.");
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
         }
 
         [HttpPut("{id}")]
@@ -59,7 +55,7 @@ namespace ApiInventario.Controllers
             try
             {
                 var result = await _productoService.UpdateAsync(id, dto);
-                return result is null ? NotFound(new { error = "Producto no encontrado." }) : Ok(result);
+                return result is null ? Problem(statusCode: StatusCodes.Status404NotFound, title: "Producto no encontrado") : Ok(result);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -67,10 +63,6 @@ namespace ApiInventario.Controllers
                     statusCode: StatusCodes.Status409Conflict,
                     title: "Conflicto de concurrencia",
                     detail: "El producto cambió durante la operación. Consulta su estado actual y vuelve a intentarlo.");
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
             }
         }
 
@@ -80,7 +72,7 @@ namespace ApiInventario.Controllers
             try
             {
                 var deleted = await _productoService.DeleteAsync(id);
-                return deleted ? NoContent() : NotFound(new { error = "Producto no encontrado." });
+                return deleted ? NoContent() : Problem(statusCode: StatusCodes.Status404NotFound, title: "Producto no encontrado");
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -88,10 +80,6 @@ namespace ApiInventario.Controllers
                     statusCode: StatusCodes.Status409Conflict,
                     title: "Conflicto de concurrencia",
                     detail: "El producto cambió durante la operación. Consulta su estado actual y vuelve a intentarlo.");
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
             }
         }
     }

@@ -1,5 +1,6 @@
 using System.Text;
 using ApiInventario.Data;
+using ApiInventario.Errors;
 using ApiInventario.OpenApi;
 using ApiInventario.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -16,7 +17,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+            .WithOrigins("http://localhost:4200", "http://127.0.0.1:4200", "http://localhost:5173")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -66,6 +67,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Instance ??= context.HttpContext.Request.Path;
+        context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+    };
+});
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHealthChecks();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options =>
@@ -81,6 +91,17 @@ builder.Services.AddOpenApi(options =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
+app.UseStatusCodePages(async context =>
+{
+    // Also cover empty authentication, authorization and routing errors.
+    await Results.Problem(
+        statusCode: context.HttpContext.Response.StatusCode,
+        instance: context.HttpContext.Request.Path,
+        extensions: new Dictionary<string, object?> { ["traceId"] = context.HttpContext.TraceIdentifier })
+        .ExecuteAsync(context.HttpContext);
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -128,3 +149,6 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+// Exposes the entry point to the HTTP integration test host.
+public partial class Program { }

@@ -1,4 +1,5 @@
-﻿using ApiInventario.Data;
+using ApiInventario.Exceptions;
+using ApiInventario.Data;
 using ApiInventario.DTOs.Producto;
 using ApiInventario.Models;
 using Microsoft.EntityFrameworkCore;
@@ -34,19 +35,19 @@ namespace ApiInventario.Services
         public async Task<ProductoResponseDto> CreateAsync(ProductoCreateDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Nombre))
-                throw new InvalidOperationException("El nombre del producto es obligatorio.");
+                throw new BusinessRuleException("El nombre del producto es obligatorio.");
 
             if (await _context.Productos.AnyAsync(p => p.Nombre == dto.Nombre))
-                throw new InvalidOperationException($"Ya existe un producto con el nombre '{dto.Nombre}'.");
+                throw new BusinessRuleException($"Ya existe un producto con el nombre '{dto.Nombre}'.", BusinessError.Conflict);
 
             if (dto.Precio <= 0)
-                throw new InvalidOperationException("El precio debe ser mayor a 0.");
+                throw new BusinessRuleException("El precio debe ser mayor a 0.");
 
             if (!await _context.Categorias.AnyAsync(c => c.Id == dto.CategoriaId))
-                throw new InvalidOperationException($"La categoría con Id {dto.CategoriaId} no existe.");
+                throw new BusinessRuleException($"La categoría con Id {dto.CategoriaId} no existe.");
 
             if (await _context.Productos.AnyAsync(p => p.Codigo == dto.Codigo))
-                throw new InvalidOperationException($"Ya existe un producto con el código '{dto.Codigo}'.");
+                throw new BusinessRuleException($"Ya existe un producto con el código '{dto.Codigo}'.", BusinessError.Conflict);
 
             var producto = new Producto
             {
@@ -75,13 +76,13 @@ namespace ApiInventario.Services
                 return null;
 
             if (string.IsNullOrWhiteSpace(dto.Nombre))
-                throw new InvalidOperationException("El nombre del producto es obligatorio.");
+                throw new BusinessRuleException("El nombre del producto es obligatorio.");
 
             if (dto.Precio <= 0)
-                throw new InvalidOperationException("El precio debe ser mayor a 0.");
+                throw new BusinessRuleException("El precio debe ser mayor a 0.");
 
             if (!await _context.Categorias.AnyAsync(c => c.Id == dto.CategoriaId))
-                throw new InvalidOperationException($"La categoría con Id {dto.CategoriaId} no existe.");
+                throw new BusinessRuleException($"La categoría con Id {dto.CategoriaId} no existe.");
 
             producto.Nombre = dto.Nombre.Trim();
             producto.Descripcion = dto.Descripcion?.Trim();
@@ -105,7 +106,7 @@ namespace ApiInventario.Services
                 return false;
 
             if (producto.Movimientos.Count != 0)
-                throw new InvalidOperationException("No se puede eliminar el producto porque tiene movimientos registrados. Considere desactivarlo.");
+                throw new BusinessRuleException("No se puede eliminar el producto porque tiene movimientos registrados. Considere desactivarlo.", BusinessError.Conflict);
 
             // Soft delete
             producto.IsActive = false;

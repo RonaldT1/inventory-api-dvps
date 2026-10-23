@@ -38,7 +38,8 @@ namespace ApiInventario.Controllers
         {
             try
             {
-                var usuarioId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var usuarioId) || usuarioId <= 0)
+                    return Challenge();
                 var result = await _movimientoService.CreateAsync(dto, usuarioId);
                 return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
             }
@@ -48,10 +49,6 @@ namespace ApiInventario.Controllers
                     statusCode: StatusCodes.Status409Conflict,
                     title: "Conflicto de concurrencia",
                     detail: "El producto cambió durante la operación. Consulta su estado actual y vuelve a intentarlo.");
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
             }
         }
     }

@@ -1,4 +1,5 @@
-﻿using ApiInventario.Data;
+using ApiInventario.Exceptions;
+using ApiInventario.Data;
 using ApiInventario.DTOs.Categoria;
 using ApiInventario.Models;
 using Microsoft.EntityFrameworkCore;
@@ -30,10 +31,10 @@ namespace ApiInventario.Services
         public async Task<CategoriaResponseDto> CreateAsync(CategoriaCreateDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Nombre))
-                throw new InvalidOperationException("El nombre de la categoría es obligatorio.");
+                throw new BusinessRuleException("El nombre de la categoría es obligatorio.");
 
             if (await _context.Categorias.AnyAsync(c => c.Nombre == dto.Nombre))
-                throw new InvalidOperationException($"Ya existe una categoría con el nombre '{dto.Nombre}'.");
+                throw new BusinessRuleException($"Ya existe una categoría con el nombre '{dto.Nombre}'.", BusinessError.Conflict);
 
             var categoria = new Categoria
             {
@@ -54,10 +55,10 @@ namespace ApiInventario.Services
                 return null;
 
             if (string.IsNullOrWhiteSpace(dto.Nombre))
-                throw new InvalidOperationException("El nombre de la categoría es obligatorio.");
+                throw new BusinessRuleException("El nombre de la categoría es obligatorio.");
 
             if (await _context.Categorias.AnyAsync(c => c.Nombre == dto.Nombre && c.Id != id))
-                throw new InvalidOperationException($"Ya existe otra categoría con el nombre '{dto.Nombre}'.");
+                throw new BusinessRuleException($"Ya existe otra categoría con el nombre '{dto.Nombre}'.", BusinessError.Conflict);
 
             categoria.Nombre = dto.Nombre.Trim();
             categoria.Descripcion = dto.Descripcion?.Trim();
@@ -76,7 +77,7 @@ namespace ApiInventario.Services
                 return false;
 
             if (categoria.Productos.Count != 0)
-                throw new InvalidOperationException("No se puede eliminar la categoría porque tiene productos asociados.");
+                throw new BusinessRuleException("No se puede eliminar la categoría porque tiene productos asociados.", BusinessError.Conflict);
 
             _context.Categorias.Remove(categoria);
             await _context.SaveChangesAsync();

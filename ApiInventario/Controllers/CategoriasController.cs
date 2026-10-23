@@ -29,52 +29,31 @@ namespace ApiInventario.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var categoria = await _categoriaService.GetByIdAsync(id);
-            return categoria is null ? NotFound(new { error = "Categoría no encontrada." }) : Ok(categoria);
+            return categoria is null ? Problem(statusCode: StatusCodes.Status404NotFound, title: "Categoría no encontrada") : Ok(categoria);
         }
 
         [HttpPost]
         [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> Create([FromBody] CategoriaCreateDto dto)
         {
-            try
-            {
-                var result = await _categoriaService.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            var result = await _categoriaService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> Update(int id, [FromBody] CategoriaUpdateDto dto)
         {
-            try
-            {
-                var result = await _categoriaService.UpdateAsync(id, dto);
-                return result is null ? NotFound(new { error = "Categoría no encontrada." }) : Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            var result = await _categoriaService.UpdateAsync(id, dto);
+            return result is null ? Problem(statusCode: StatusCodes.Status404NotFound, title: "Categoría no encontrada") : Ok(result);
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                var deleted = await _categoriaService.DeleteAsync(id);
-                return deleted ? NoContent() : NotFound(new { error = "Categoría no encontrada." });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            var deleted = await _categoriaService.DeleteAsync(id);
+            return deleted ? NoContent() : Problem(statusCode: StatusCodes.Status404NotFound, title: "Categoría no encontrada");
         }
     }
 }

@@ -1,3 +1,4 @@
+using ApiInventario.Exceptions;
 using ApiInventario.Data;
 using ApiInventario.DTOs.Movimiento;
 using ApiInventario.Models;
@@ -31,7 +32,7 @@ public class MovimientoServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_SalidaSinStockSuficiente_LanzaInvalidOperationException()
+    public async Task CreateAsync_SalidaSinStockSuficiente_LanzaBusinessRuleException()
     {
         await using var context = CreateContext();
         await SeedInventarioAsync(context, stockActual: 5);
@@ -45,7 +46,7 @@ public class MovimientoServiceTests
             Motivo = "Venta"
         };
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(dto, usuarioId: 1));
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(dto, usuarioId: 1));
         Assert.Equal("Stock insuficiente. Stock actual: 5, cantidad solicitada: 10.", exception.Message);
     }
 

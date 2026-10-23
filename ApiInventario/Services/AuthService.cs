@@ -1,4 +1,5 @@
-﻿using ApiInventario.Data;
+using ApiInventario.Exceptions;
+using ApiInventario.Data;
 using ApiInventario.DTOs.Auth;
 using ApiInventario.Models;
 using Microsoft.EntityFrameworkCore;
@@ -19,19 +20,19 @@ namespace ApiInventario.Services
         public async Task<LoginResponseDto> RegisterAsync(RegisterRequestDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Username))
-                throw new InvalidOperationException("El nombre de usuario es obligatorio.");
+                throw new BusinessRuleException("El nombre de usuario es obligatorio.");
 
             if (string.IsNullOrWhiteSpace(dto.Email))
-                throw new InvalidOperationException("El email es obligatorio.");
+                throw new BusinessRuleException("El email es obligatorio.");
 
             if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
-                throw new InvalidOperationException("La contraseña debe tener al menos 6 caracteres.");
+                throw new BusinessRuleException("La contraseña debe tener al menos 6 caracteres.");
 
             if (await _context.Usuarios.AnyAsync(u => u.Username == dto.Username))
-                throw new InvalidOperationException($"El nombre de usuario '{dto.Username}' ya está en uso.");
+                throw new BusinessRuleException($"El nombre de usuario '{dto.Username}' ya está en uso.", BusinessError.Conflict);
 
             if (await _context.Usuarios.AnyAsync(u => u.Email == dto.Email))
-                throw new InvalidOperationException($"El email '{dto.Email}' ya está registrado.");
+                throw new BusinessRuleException($"El email '{dto.Email}' ya está registrado.", BusinessError.Conflict);
 
             var usuario = new Usuario
             {
@@ -56,17 +57,17 @@ namespace ApiInventario.Services
         public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
-                throw new InvalidOperationException("Usuario y contraseña son obligatorios.");
+                throw new BusinessRuleException("Usuario y contraseña son obligatorios.");
 
             var usuario = await _context.Usuarios
                 .FirstOrDefaultAsync(u => u.Username == dto.Username)
-                ?? throw new InvalidOperationException("Credenciales inválidas.");
+                ?? throw new BusinessRuleException("Credenciales inválidas.", BusinessError.InvalidCredentials);
 
             if (!usuario.IsActive)
-                throw new InvalidOperationException("La cuenta está desactivada.");
+                throw new BusinessRuleException("La cuenta está desactivada.", BusinessError.Forbidden);
 
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, usuario.PasswordHash))
-                throw new InvalidOperationException("Credenciales inválidas.");
+                throw new BusinessRuleException("Credenciales inválidas.", BusinessError.InvalidCredentials);
 
             return new LoginResponseDto
             {

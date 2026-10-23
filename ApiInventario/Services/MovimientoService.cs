@@ -1,4 +1,5 @@
-﻿using ApiInventario.Data;
+using ApiInventario.Exceptions;
+using ApiInventario.Data;
 using ApiInventario.DTOs.Movimiento;
 using ApiInventario.Models;
 using Microsoft.EntityFrameworkCore;
@@ -39,20 +40,20 @@ namespace ApiInventario.Services
         {
             // Validar tipo de movimiento
             if (dto.TipoMovimiento is not ("Entrada" or "Salida" or "Ajuste"))
-                throw new InvalidOperationException("El tipo de movimiento debe ser 'Entrada', 'Salida' o 'Ajuste'.");
+                throw new BusinessRuleException("El tipo de movimiento debe ser 'Entrada', 'Salida' o 'Ajuste'.");
 
             if (dto.Cantidad <= 0)
-                throw new InvalidOperationException("La cantidad debe ser mayor a 0.");
+                throw new BusinessRuleException("La cantidad debe ser mayor a 0.");
 
             var producto = await _context.Productos.FindAsync(dto.ProductoId)
-                ?? throw new InvalidOperationException($"El producto con Id {dto.ProductoId} no existe.");
+                ?? throw new BusinessRuleException($"El producto con Id {dto.ProductoId} no existe.", BusinessError.NotFound);
 
             if (!producto.IsActive)
-                throw new InvalidOperationException("No se pueden registrar movimientos en un producto inactivo.");
+                throw new BusinessRuleException("No se pueden registrar movimientos en un producto inactivo.");
 
             // Validar stock suficiente para salidas
             if (dto.TipoMovimiento == "Salida" && producto.StockActual < dto.Cantidad)
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Stock insuficiente. Stock actual: {producto.StockActual}, cantidad solicitada: {dto.Cantidad}.");
 
             // Actualizar stock según tipo
@@ -65,7 +66,7 @@ namespace ApiInventario.Services
             };
 
             if (producto.StockActual < 0)
-                throw new InvalidOperationException("El movimiento resultaría en stock negativo.");
+                throw new BusinessRuleException("El movimiento resultaría en stock negativo.");
 
             var movimiento = new MovimientoInventario
             {
